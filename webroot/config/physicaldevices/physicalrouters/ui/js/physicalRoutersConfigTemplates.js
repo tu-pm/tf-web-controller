@@ -426,6 +426,22 @@ define([
                 ]
             };
         };
+        self.prumChkboxView =  function() {
+            return {
+                columns: [
+                    {
+                        elementId: 'physical_router_underlay_managed',
+                        view: "FormCheckboxView",
+                        viewConfig: {
+                            label : "Device Underlay Managed",
+                            path: "physical_router_underlay_managed",
+                            dataBindValue: "physical_router_underlay_managed",
+                            class: "col-xs-12"
+                        }
+                    }
+                ]
+            };
+        };
         self.snmpMntdChkboxView =  function() {
             return {
                 columns: [
@@ -571,6 +587,16 @@ define([
                             label : "Model",
                             path: "physical_router_product_name",
                             dataBindValue: "physical_router_product_name",
+                            class: "col-xs-6"
+                        }
+                    },
+                    {
+                        elementId: 'physical_router_device_family',
+                        view: "FormInputView",
+                        viewConfig: {
+                            label : "Device Family",
+                            path: "physical_router_device_family",
+                            dataBindValue: "physical_router_device_family",
                             class: "col-xs-6"
                         }
                     },

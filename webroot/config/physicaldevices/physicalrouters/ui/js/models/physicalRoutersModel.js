@@ -14,10 +14,12 @@ define([
             'display_name' : null,
             'physical_router_vendor_name' : null,
             'physical_router_product_name' : "",
+            'physical_router_device_family' : "",
             'physical_router_management_ip' : null,
             'physical_router_dataplane_ip' : null,
             'physical_router_loopback_ip' : null,
             'snmpMntd' : false,
+            'physical_router_underlay_managed' : false,
             'physical_router_snmp_credentials' : {
                 'v2_community' : null,
                 'v3_privacy_protocol' : null,
@@ -235,12 +237,17 @@ define([
                     attr['physical_router_vendor_name'];
                 postObject["physical-router"]["physical_router_product_name"] =
                     attr['physical_router_product_name'];
+                postObject["physical-router"]["physical_router_device_family"] =
+                    attr['physical_router_device_family'];
                 postObject["physical-router"]["physical_router_management_ip"] =
                     attr.physical_router_management_ip;
                 postObject["physical-router"]["physical_router_dataplane_ip"] =
                     attr.physical_router_dataplane_ip;
                 postObject["physical-router"]["physical_router_loopback_ip"] =
                     attr.physical_router_loopback_ip;
+                postObject["physical-router"]
+                    ["physical_router_underlay_managed"] =
+                    attr["physical_router_underlay_managed"];
                 //Decide the creation vrouter based on the type
                 if(type === ctwl.OVSDB_TYPE) {
                     //Given the tor and tsn name create them without ips
