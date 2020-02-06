@@ -742,6 +742,7 @@ define([
                             ]
                         },
                         pRouterConfigTemplates.prumChkboxView(),
+                        pRouterConfigTemplates.fabricRefsView(),
                         pRouterConfigTemplates.AssociatedVRAccordion(self.torAgentVrouterDS,
                             self.tsnVrouterDS),
                         pRouterConfigTemplates.snmpMntdChkboxView(),

@@ -767,6 +767,48 @@ define([
                 ]
             };
         };
+        self.fabricRefsView = function() {
+            return {
+                columns: [
+                    {
+                        elementId: 'fabric_refs',
+                        view: "FormDropdownView",
+                        viewConfig: {
+                            label: "Fabric References",
+                            path: "fabric_refs",
+                            dataBindValue: "fabric_refs",
+                            class: "col-xs-12",
+                            elementConfig:{
+                                dataTextField: "text",
+                                dataValueField: "value",
+                                dataSource: {
+                                    type: "remote",
+                                    requestType: 'POST',
+                                    postData: JSON.stringify({'data':
+                                                [{'type':'fabrics'}]}), //fabric refs
+                                    url: '/api/tenants/config/get-config-list',
+                                    parse: function(result) {
+                                        return self.parseFabricRefs(result);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        };
+        self.parseFabricRefs = function(result) {
+            var fabricRefs = [{text: "None", value: "None"}];
+                fabrics = getValueByJsonPath(result, "0;fabrics", []);
+            _.each(fabrics, function(pi) {
+                piFqName = getValueByJsonPath(pi, "fq_name", [], false);
+                if(piFqName.length === 2) {
+                    fabricRefs.push({text: piFqName[0] + ":" + piFqName[1],
+                        value: piFqName[0] + ":" + piFqName[1]});
+                }
+            });
+            return fabricRefs;
+        };
     };
     return pRouterConfigTemplates;
 });

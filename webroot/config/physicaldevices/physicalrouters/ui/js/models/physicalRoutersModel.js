@@ -60,6 +60,7 @@ define([
             'virtualRouterType' : null,
             'physical_router_vnc_managed' : false,
             'virtual_network_refs' : [],
+            'fabric_refs': [],
             'user_created_virtual_network' : null,
             'physical_router_role': 'none',
             'evpn_peered_tor': false,
@@ -248,6 +249,11 @@ define([
                 postObject["physical-router"]
                     ["physical_router_underlay_managed"] =
                     attr["physical_router_underlay_managed"];
+                if(attr.fabric_refs != null) {
+                    var fabricRefs = attr.fabric_refs.split(":");
+                    fabricRefs = [{"to": [fabricRefs[0],fabricRefs[1]]}];
+                    postObject["physical-router"]["fabric_refs"] = fabricRefs;
+                }
                 //Decide the creation vrouter based on the type
                 if(type === ctwl.OVSDB_TYPE) {
                     //Given the tor and tsn name create them without ips
