@@ -601,7 +601,7 @@ define([
                             elementConfig:{
                                 allowClear: true,
                                 dataTextField: "text",
-                                dataValueField: "text",
+                                dataValueField: "value",
                                 data : ctwc.PHYSICAL_ROUTER_FAMILY
                             }
                         }
@@ -773,16 +773,46 @@ define([
                 ]
             };
         };
+        self.nodeProfileRefsView = function() {
+            return {
+                columns: [
+                    {
+                        elementId: 'user_created_node_profile_refs',
+                        view: "FormMultiselectView",
+                        viewConfig: {
+                            label: "Node Profile References",
+                            path: "user_created_node_profile_refs",
+                            dataBindValue: "user_created_node_profile_refs",
+                            class: "col-xs-12",
+                            elementConfig:{
+                                dataTextField: "text",
+                                dataValueField: "value",
+                                dataSource: {
+                                    type: "remote",
+                                    requestType: 'POST',
+                                    postData: JSON.stringify({'data':
+                                                [{'type':'node-profiles'}]}), //node-profiles refs
+                                    url: '/api/tenants/config/get-config-list',
+                                    parse: function(result) {
+                                        return self.parseListRefs(result, "node-profiles");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        };
         self.fabricRefsView = function() {
             return {
                 columns: [
                     {
-                        elementId: 'fabric_refs',
+                        elementId: 'user_created_fabric_refs',
                         view: "FormMultiselectView",
                         viewConfig: {
                             label: "Fabric References",
-                            path: "fabric_refs",
-                            dataBindValue: "fabric_refs",
+                            path: "user_created_fabric_refs",
+                            dataBindValue: "user_created_fabric_refs",
                             class: "col-xs-12",
                             elementConfig:{
                                 dataTextField: "text",
@@ -794,7 +824,7 @@ define([
                                                 [{'type':'fabrics'}]}), //fabric refs
                                     url: '/api/tenants/config/get-config-list',
                                     parse: function(result) {
-                                        return self.parseFabricRefs(result);
+                                        return self.parseListRefs(result, "fabrics");
                                     }
                                 }
                             }
@@ -803,17 +833,17 @@ define([
                 ]
             }
         };
-        self.parseFabricRefs = function(result) {
-            var fabricRefs = [{text: "None", value: "None"}];
-                fabrics = getValueByJsonPath(result, "0;fabrics", []);
-            _.each(fabrics, function(pi) {
-                piFqName = getValueByJsonPath(pi, "fq_name", [], false);
+        self.parseListRefs = function(result, type) {
+            var listRefs = [{text: "None", value: "None"}];
+            var elements = getValueByJsonPath(result, "0;" + type, []);
+            _.each(elements, function(pi) {
+                var piFqName = getValueByJsonPath(pi, "fq_name", [], false);
                 if(piFqName.length === 2) {
-                    fabricRefs.push({text: piFqName[0] + ":" + piFqName[1],
+                    listRefs.push({text: piFqName[0] + ":" + piFqName[1],
                         value: piFqName[0] + ":" + piFqName[1]});
                 }
             });
-            return fabricRefs;
+            return listRefs;
         };
     };
     return pRouterConfigTemplates;

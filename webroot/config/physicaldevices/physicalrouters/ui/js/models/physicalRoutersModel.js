@@ -60,10 +60,14 @@ define([
             'virtualRouterType' : null,
             'physical_router_vnc_managed' : false,
             'virtual_network_refs' : [],
+            'node_profile_refs': [],
+            'user_created_node_profile_refs': null,
             'fabric_refs': [],
+            'user_created_fabric_refs': null,
             'user_created_virtual_network' : null,
             'physical_router_role': 'none',
-            'routing_bridging_roles': 'none',
+            'routing_bridging_roles': null,
+            'user_created_routing_bridging_roles': null,
             'evpn_peered_tor': false,
             'roleDataSource': ctwc.PHYSICAL_ROUTER_ROLE_DATA,
             'routingBridgingRoleDataSource': ctwc.PHYSICAL_ROUTER_RB_ROLE_DATA
@@ -149,6 +153,30 @@ define([
                 });
                 modelConfig['user_created_virtual_network'] = vnData;
             }
+            
+            if(modelConfig['routing_bridging_roles'] != null) {
+                var rbrData = modelConfig['routing_bridging_roles']['rb_roles'];
+                modelConfig['user_created_routing_bridging_roles'] = rbrData;
+            }
+
+            if(modelConfig['node_profile_refs'] != null &&
+                modelConfig['node_profile_refs'].length > 0) {
+                var vnData = [];
+                $.each(modelConfig['node_profile_refs'], function(i,d){
+                    vnData.push(d.to[0] + ':' + d.to[1]);
+                });
+                modelConfig['user_created_node_profile_refs'] = vnData;
+            }
+
+            if(modelConfig['fabric_refs'] != null &&
+                modelConfig['fabric_refs'].length > 0) {
+                var vnData = [];
+                $.each(modelConfig['fabric_refs'], function(i,d){
+                    vnData.push(d.to[0] + ':' + d.to[1]);
+                });
+                modelConfig['user_created_fabric_refs'] = vnData;
+            }
+
             //handle virtual_router_refs
             var vrType = 'None';
             var selectedVRouters = ifNull(modelConfig['virtual_router_refs'], []);
@@ -249,21 +277,23 @@ define([
                 postObject["physical-router"]["physical_router_loopback_ip"] =
                     attr.physical_router_loopback_ip;
 
-                postObject["physical-router"]
-                    ["physical_router_underlay_managed"] =
+                postObject["physical-router"]["physical_router_underlay_managed"] =
                     attr["physical_router_underlay_managed"];
-                if(attr.fabric_refs != null) {
-                    var fabricRefs = attr.fabric_refs.split(":");
+                if(attr.user_created_node_profile_refs != null) {
+                    var nodeProfileRefs = attr.user_created_node_profile_refs.split(":");
+                    nodeProfileRefs = [{"to": [nodeProfileRefs[0],nodeProfileRefs[1]]}];
+                    postObject["physical-router"]["node_profile_refs"] = nodeProfileRefs;
+                }
+                if(attr.user_created_fabric_refs != null) {
+                    var fabricRefs = attr.user_created_fabric_refs.split(":");
                     fabricRefs = [{"to": [fabricRefs[0],fabricRefs[1]]}];
                     postObject["physical-router"]["fabric_refs"] = fabricRefs;
                 }
-                if(attr.routing_bridging_roles !== 'none') {
+                if(attr.user_created_routing_bridging_roles !== null) {
                     postObject["physical-router"]["routing_bridging_roles"] =
-                        {'rb_roles': [attr.routing_bridging_roles]};
-                } else {
-                    postObject["physical-router"]["routing_bridging_roles"] =
-                        null;
+                        {'rb_roles': [attr.user_created_routing_bridging_roles]};
                 }
+
                 //Decide the creation vrouter based on the type
                 if(type === ctwl.OVSDB_TYPE) {
                     //Given the tor and tsn name create them without ips

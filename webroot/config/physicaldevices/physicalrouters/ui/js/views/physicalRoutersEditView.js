@@ -704,12 +704,12 @@ define([
                                     }
                                 },
                                 {
-                                    elementId: 'routing_bridging_roles',
+                                    elementId: 'user_created_routing_bridging_roles',
                                     view: "FormDropdownView",
                                     viewConfig: {
                                         label : "Routing Bridging Roles",
-                                        path: "routing_bridging_roles",
-                                        dataBindValue: "routing_bridging_roles",
+                                        path: "user_created_routing_bridging_roles",
+                                        dataBindValue: "user_created_routing_bridging_roles",
                                         dataBindOptionList : "routingBridgingRoleDataSource",
                                         class: "col-xs-6",
                                         elementConfig:{
@@ -737,6 +737,8 @@ define([
                             ]
                         },
                         pRouterConfigTemplates.prumChkboxView(),
+                        pRouterConfigTemplates.nodeProfileRefsView(),
+                        pRouterConfigTemplates.fabricRefsView(),
                         {
                             columns: [
                                 {
@@ -757,7 +759,6 @@ define([
                                 }
                             ]
                         },
-                        pRouterConfigTemplates.fabricRefsView(),
                         pRouterConfigTemplates.AssociatedVRAccordion(self.torAgentVrouterDS,
                             self.tsnVrouterDS),
                         pRouterConfigTemplates.snmpMntdChkboxView(),
