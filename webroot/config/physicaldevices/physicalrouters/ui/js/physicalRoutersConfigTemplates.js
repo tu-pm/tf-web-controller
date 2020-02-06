@@ -436,7 +436,7 @@ define([
                             label : "Device Underlay Managed",
                             path: "physical_router_underlay_managed",
                             dataBindValue: "physical_router_underlay_managed",
-                            class: "col-xs-12"
+                            class: "col-xs-6"
                         }
                     }
                 ]
@@ -592,12 +592,18 @@ define([
                     },
                     {
                         elementId: 'physical_router_device_family',
-                        view: "FormInputView",
+                        view: "FormDropdownView",
                         viewConfig: {
                             label : "Device Family",
                             path: "physical_router_device_family",
                             dataBindValue: "physical_router_device_family",
-                            class: "col-xs-6"
+                            class: "col-xs-6",
+                            elementConfig:{
+                                allowClear: true,
+                                dataTextField: "text",
+                                dataValueField: "text",
+                                data : ctwc.PHYSICAL_ROUTER_FAMILY
+                            }
                         }
                     },
                     {
@@ -772,7 +778,7 @@ define([
                 columns: [
                     {
                         elementId: 'fabric_refs',
-                        view: "FormDropdownView",
+                        view: "FormMultiselectView",
                         viewConfig: {
                             label: "Fabric References",
                             path: "fabric_refs",

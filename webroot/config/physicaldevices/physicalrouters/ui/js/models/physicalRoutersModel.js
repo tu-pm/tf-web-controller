@@ -63,8 +63,10 @@ define([
             'fabric_refs': [],
             'user_created_virtual_network' : null,
             'physical_router_role': 'none',
+            'routing_bridging_roles': 'none',
             'evpn_peered_tor': false,
-            'roleDataSource': ctwc.PHYSICAL_ROUTER_ROLE_DATA
+            'roleDataSource': ctwc.PHYSICAL_ROUTER_ROLE_DATA,
+            'routingBridgingRoleDataSource': ctwc.PHYSICAL_ROUTER_RB_ROLE_DATA
         },
         formatModelConfig: function (modelConfig) {
             /*
@@ -246,6 +248,7 @@ define([
                     attr.physical_router_dataplane_ip;
                 postObject["physical-router"]["physical_router_loopback_ip"] =
                     attr.physical_router_loopback_ip;
+
                 postObject["physical-router"]
                     ["physical_router_underlay_managed"] =
                     attr["physical_router_underlay_managed"];
@@ -253,6 +256,13 @@ define([
                     var fabricRefs = attr.fabric_refs.split(":");
                     fabricRefs = [{"to": [fabricRefs[0],fabricRefs[1]]}];
                     postObject["physical-router"]["fabric_refs"] = fabricRefs;
+                }
+                if(attr.routing_bridging_roles !== 'none') {
+                    postObject["physical-router"]["routing_bridging_roles"] =
+                        {'rb_roles': [attr.routing_bridging_roles]};
+                } else {
+                    postObject["physical-router"]["routing_bridging_roles"] =
+                        null;
                 }
                 //Decide the creation vrouter based on the type
                 if(type === ctwl.OVSDB_TYPE) {

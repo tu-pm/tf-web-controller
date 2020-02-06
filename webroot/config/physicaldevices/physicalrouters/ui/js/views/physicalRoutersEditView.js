@@ -704,6 +704,21 @@ define([
                                     }
                                 },
                                 {
+                                    elementId: 'routing_bridging_roles',
+                                    view: "FormDropdownView",
+                                    viewConfig: {
+                                        label : "Routing Bridging Roles",
+                                        path: "routing_bridging_roles",
+                                        dataBindValue: "routing_bridging_roles",
+                                        dataBindOptionList : "routingBridgingRoleDataSource",
+                                        class: "col-xs-6",
+                                        elementConfig:{
+                                            dataTextField: "text",
+                                            dataValueField: "value"
+                                        }
+                                    }
+                                },
+                                {
                                     elementId: 'user_created_bgp_router',
                                     view: "FormDropdownView",
                                     viewConfig: {
@@ -721,6 +736,7 @@ define([
                                 }
                             ]
                         },
+                        pRouterConfigTemplates.prumChkboxView(),
                         {
                             columns: [
                                 {
@@ -741,7 +757,6 @@ define([
                                 }
                             ]
                         },
-                        pRouterConfigTemplates.prumChkboxView(),
                         pRouterConfigTemplates.fabricRefsView(),
                         pRouterConfigTemplates.AssociatedVRAccordion(self.torAgentVrouterDS,
                             self.tsnVrouterDS),

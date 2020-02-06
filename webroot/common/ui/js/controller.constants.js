@@ -876,6 +876,16 @@ define([
             {'value' : 'none', "text" : 'None'},
             {'value' : 'leaf', "text" : 'Leaf'}
         ];
+        this.PHYSICAL_ROUTER_FAMILY = [
+            {'value' : 'none', "text" : 'None'},
+            {'value' : 'junos', "text" : 'Juniper-junos'},
+            {'value' : 'comware7', "text" : 'HPE-comware7'},
+            {'value' : 'nxos', "text" : 'Cisco-nexus'}
+        ];
+        this.PHYSICAL_ROUTER_RB_ROLE_DATA = [
+            {'value' : 'none', "text" : 'None'},
+            {'value' : 'dc-gateway', "text" : 'dc-gateway'}
+        ];
         // VRouter Config Constants
         this.URL_CFG_VROUTER_DETAILS =
             '/api/tenants/config/virtual-routers-detail';
