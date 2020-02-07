@@ -475,6 +475,7 @@ define([
             self.checkDefaultSG(selVN.fqName, function(isDefaultSG) {
                 var portCreateAjaxs = [];
                 if (portsDetails.length == 0) {
+                    // Create logical interface without MAC/IP for VTEP Gateway
                     var postObjInput = {};
                     postObjInput.subnetId = selVN.subnetId;
                     postObjInput.fqName = selVN.fqName;
