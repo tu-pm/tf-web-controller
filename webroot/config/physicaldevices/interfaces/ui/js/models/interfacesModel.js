@@ -267,7 +267,7 @@ define([
                 //Fetch the server tuples and create vmis appropriately
                 var attr = $.extend(true, {}, this.model().attributes);
                 var serverTuples = this.getServerList(attr);
-                var requireVMICreation = false;
+                var requireVMICreation = true;
                 var liType = attr.logical_interface_type;
                 var selectedServerDetails = [];
                 if (serverTuples && serverTuples.length > 0) {
@@ -282,9 +282,9 @@ define([
                                 "isVMICreate":isVMICreate
                             }
                         );
-                        if(isVMICreate){
-                            requireVMICreation = true;
-                        }
+                        // if(isVMICreate){
+                        //     requireVMICreation = true;
+                        // }
                     }
                 }
 
@@ -474,15 +474,11 @@ define([
             var selVN = self.getSelectedVNItem(attr.user_created_virtual_network);
             self.checkDefaultSG(selVN.fqName, function(isDefaultSG) {
                 var portCreateAjaxs = [];
-                for(var i = 0; i < portsDetails.length; i++){
+                if (portsDetails.length == 0) {
                     var postObjInput = {};
                     postObjInput.subnetId = selVN.subnetId;
                     postObjInput.fqName = selVN.fqName;
                     postObjInput.isDefaultSG = isDefaultSG;
-                    if(portsDetails[i].mac != '') {
-                        postObjInput.mac = portsDetails[i].mac;
-                    }
-                    postObjInput.ip = portsDetails[i].ip;
                     portCreateAjaxs.push($.ajax({
                         url : '/api/tenants/config/ports',
                         type : "POST",
@@ -490,6 +486,24 @@ define([
                         data :
                             JSON.stringify(self.prepareVMIPostObject(postObjInput))
                     }));
+                } else {
+                    for(var i = 0; i < portsDetails.length; i++){
+                        var postObjInput = {};
+                        postObjInput.subnetId = selVN.subnetId;
+                        postObjInput.fqName = selVN.fqName;
+                        postObjInput.isDefaultSG = isDefaultSG;
+                        if(portsDetails[i].mac != '') {
+                            postObjInput.mac = portsDetails[i].mac;
+                        }
+                        postObjInput.ip = portsDetails[i].ip;
+                        portCreateAjaxs.push($.ajax({
+                            url : '/api/tenants/config/ports',
+                            type : "POST",
+                            contentType : 'application/json',
+                            data :
+                                JSON.stringify(self.prepareVMIPostObject(postObjInput))
+                        }));
+                    }
                 }
                 var defer = $.when.apply($, portCreateAjaxs);
                 defer.done(function(){
