@@ -271,6 +271,7 @@ define([
                 var liType = attr.logical_interface_type;
                 var selectedServerDetails = [];
                 if (serverTuples && serverTuples.length > 0) {
+                    requireVMICreation = false;
                     for(i = 0 ; i< serverTuples.length ; i++){
                         var serverIp = serverTuples[i].ip;
                         var serverMac = serverTuples[i].mac;
@@ -282,9 +283,9 @@ define([
                                 "isVMICreate":isVMICreate
                             }
                         );
-                        // if(isVMICreate){
-                        //     requireVMICreation = true;
-                        // }
+                        if(isVMICreate){
+                            requireVMICreation = true;
+                        }
                     }
                 }
 
