@@ -117,9 +117,9 @@ define([
                 }
                 //Externel Network
                 var extNetworkUUID = newLRData.extNetworkUUID
-                newLRData["virtual_network_refs"] = [];
                 if(newLRData.elementConfigMap && extNetworkUUID != "" &&
                    extNetworkUUID != "None") {
+                   newLRData["virtual_network_refs"] = [];
                     var extNetworkUUIDData =
                         newLRData.elementConfigMap.extNetworkUUID.data;
                     var extNetworkUUIDDataLen = extNetworkUUIDData.length;
