@@ -25,36 +25,38 @@ define([
                                 {modalId: modalId, prefixId: prefixId}),
                 self = this;
 
-            cowu.createModal({'modalId': modalId,
-                              'className': 'modal-700',
-                              'title': options['title'],
-                              'body': editLayout,
-                              'onSave': function () {
-                self.model.configureLogicalRouter(options['mode'],
-                                                  allNetworksDS,
-                {
-                    init: function () {
-                        self.model.showErrorAttr(prefixId + cowc.FORM_SUFFIX_ID,
-                                                 false);
-                        cowu.enableModalLoading(modalId);
-                    },
-                    success: function () {
-                        options['callback']();
-                        $("#" + modalId).modal('hide');
-                    },
-                    error: function (error) {
-                        cowu.disableModalLoading(modalId, function () {
-                            self.model.showErrorAttr(
-                                       prefixId + cowc.FORM_SUFFIX_ID,
-                                       error.responseText);
-                        });
-                    }
-                });
-            }, 'onCancel': function () {
-                Knockback.release(self.model, document.getElementById(modalId));
-                kbValidation.unbind(self);
-                $("#" + modalId).modal('hide');
-            }});
+            cowu.createModal({
+                'modalId': modalId,
+                'className': 'modal-700',
+                'title': options['title'],
+                'body': editLayout,
+                'onSave': function () {
+                    self.model.configureLogicalRouter(options['mode'],
+                    {
+                        init: function () {
+                            self.model.showErrorAttr(prefixId + cowc.FORM_SUFFIX_ID,
+                                                    false);
+                            cowu.enableModalLoading(modalId);
+                        },
+                        success: function () {
+                            options['callback']();
+                            $("#" + modalId).modal('hide');
+                        },
+                        error: function (error) {
+                            cowu.disableModalLoading(modalId, function () {
+                                self.model.showErrorAttr(
+                                        prefixId + cowc.FORM_SUFFIX_ID,
+                                        error.responseText);
+                            });
+                        }
+                    });
+                },
+                'onCancel': function () {
+                    Knockback.release(self.model, document.getElementById(modalId));
+                    kbValidation.unbind(self);
+                    $("#" + modalId).modal('hide');
+                }
+            });
 
            this.fetchAllData(this ,
                 function(allNetworksDS, externalNetworksDS) {
@@ -62,10 +64,15 @@ define([
                    if(options['mode'] == "edit") {
                        disableElement = true;
                    }
+                   self.model.storeAllNetworks(allNetworksDS)
                    self.renderView4Config(
                         $("#" + modalId).find("#" + modalId + "-form"),
-                        self.model, getConfigureViewConfig
-                        (disableElement, allNetworksDS, externalNetworksDS),
+                        self.model, 
+                        getConfigureViewConfig(
+                            disableElement, 
+                            allNetworksDS, 
+                            externalNetworksDS
+                        ),
                         null, null, null, function(){
                             self.model.showErrorAttr(prefixId +
                                             cowc.FORM_SUFFIX_ID, false);
@@ -226,21 +233,6 @@ define([
                                      dataBindValue: 'checkSNAT',
                                      class: "col-xs-6"}
                     }]
-                },{
-                    columns: [{
-                        elementId: 'connectedNetwork',
-                        view: "FormMultiselectView",
-                        name: "Connected Networks",
-                        viewConfig: {path: 'connectedNetwork',
-                                     label: "Connected Networks",
-                                     dataBindValue: 'connectedNetwork',
-                                     class: "col-xs-12",
-                        elementConfig:{allowClear: true,
-                                       placeholder: ctwl.SELECT_CONN_NET,
-                                       dataTextField: "text",
-                                       dataValueField: "value",
-                                       data : allNetworksDS}}
-                    }]
                 }, {
                     columns: [{
                             elementId: 'user_created_physical_router',
@@ -295,6 +287,88 @@ define([
                             dataBindValue: 'vxlan_network_identifier',
                             class: "col-xs-6"
                         }
+                    }]
+                }, {
+                    columns: [{
+                        elementId: 'connected_networks_accordian',
+                        view: "AccordianView",
+                        viewConfig: [{
+                            elementId: 'network_vcfg',
+                            title: 'Connected Networks',
+                            view: "SectionView",
+                            active: false,
+                            viewConfig: {
+                                rows: [{
+                                    columns: [{
+                                        elementId: 'user_created_router_ports',
+                                        view: "FormEditableGridView",
+                                        viewConfig: {
+                                            path: 'user_created_router_ports',
+                                            class: 'col-xs-12',
+                                            validation: 'routerPortModelConfigValidations',
+                                            templateId: cowc.TMP_EDITABLE_GRID_ACTION_VIEW,
+                                            collection: 'user_created_router_ports',
+                                            columns: [
+                                                {
+                                                    elementId: 'network',
+                                                    name: 'Network',
+                                                    view: "FormDropdownView",
+                                                    viewConfig: {
+                                                        class: "", width: 400,
+                                                        disabled: 'disableRP()',
+                                                        placeholder: 'Network name',
+                                                        templateId: cowc.TMPL_EDITABLE_GRID_DROPDOWN_VIEW,
+                                                        path: "network",
+                                                        elementConfig: {
+                                                            dataTextField: "text",
+                                                            dataValueField: "value",
+                                                            defaultValueId: 0,
+                                                            data: [{"text": "Select a network", "value": "none"}].concat(allNetworksDS)
+                                                        },
+                                                        dataBindValue: 'network()',
+                                                    }
+                                                },
+                                               {
+                                                    elementId: 'ip',
+                                                    name: 'IP Address',
+                                                    view: "FormInputView",
+                                                    viewConfig: {
+                                                        class: "", width: 400,
+                                                        disabled: 'disableRP()',
+                                                        placeholder: 'Fixed IP address',
+                                                        templateId: cowc.TMPL_EDITABLE_GRID_INPUT_VIEW,
+                                                        path: "ip",
+                                                        dataBindValue: 'ip()',
+                                                    }
+                                                }
+                                            ],
+                                            rowActions: [
+                                                {
+                                                    onClick: "function() {\
+                                                        $root.addRouterPortByIndex('user_created_router_ports', $data, this);\
+                                                    }",
+                                                    iconClass: 'fa fa-plus'
+                                                },
+                                                {
+                                                    onClick: "function() {\
+                                                        $root.deleteRouterPort($data, this);\
+                                                    }",
+                                                    iconClass: 'fa fa-minus'
+                                                }
+                                            ],
+                                            gridActions: [
+                                                {
+                                                    onClick: "function() {\
+                                                        addRouterPort('user_created_router_ports');\
+                                                    }",
+                                                    buttonTitle: ""
+                                                }
+                                            ]
+                                        }
+                                    }]
+                                }]
+                            }
+                        }]
                     }]
                 }, {
                 columns: [
@@ -356,18 +430,18 @@ define([
                                             rowActions: [
                                                 {onClick: "function() {\
                                                     $root.addRouteTargetByIndex('user_created_configured_route_target_list', $data,this);\
-                                                    }",
-                                                 iconClass: 'fa fa-plus'},
+                                                }",
+                                                iconClass: 'fa fa-plus'},
                                                 {onClick: "function() {\
                                                     $root.deleteRouteTarget($data, this);\
-                                                   }",
-                                                 iconClass: 'fa fa-minus'}
+                                                }",
+                                                iconClass: 'fa fa-minus'}
                                             ],
                                             gridActions: [
                                                 {onClick: "function() {\
                                                     addRouteTarget('user_created_configured_route_target_list');\
-                                                    }",
-                                                 buttonTitle: ""}
+                                                }",
+                                                buttonTitle: ""}
                                             ]
                                         }
                                     }

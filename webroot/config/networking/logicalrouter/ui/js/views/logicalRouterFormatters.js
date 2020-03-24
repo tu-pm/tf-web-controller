@@ -187,27 +187,26 @@ define([
             }
             return connectedNetworks;
         };
-        this.buildVMIObj = function(vmi,connectedNetworksVMI,
-                                    selectedDomain, selectedProject) {
+        this.buildVMIObj = function(
+            vmi,                        // New network that will be attached to the router
+            connectedNetworksVMI,       // Current attached networks
+            selectedDomain,             // Current domain
+            selectedProject)            // Current project
+        {
             var vmiRef = {};
             var uuid = null;
             var to = [];
-            if(connectedNetworksVMI.length > 0){
-                for(var tempInc = 0; tempInc < connectedNetworksVMI.length;
-                                     tempInc++){
-                    if("virtual_network_refs" in connectedNetworksVMI[tempInc]){
-                        var vmi_vn =
-                        connectedNetworksVMI[tempInc]["virtual_network_refs"][0];
-                        if(vmi_vn["uuid"] == vmi.value){
-                            uuid = connectedNetworksVMI[tempInc]["uuid"];
-                            to = connectedNetworksVMI[tempInc]["to"];
-                        }
+            for(var tempInc = 0; tempInc < connectedNetworksVMI.length; tempInc++){
+                if("virtual_network_refs" in connectedNetworksVMI[tempInc]){
+                    var vmi_vn = connectedNetworksVMI[tempInc]["virtual_network_refs"][0];
+                    if(vmi_vn["uuid"] == vmi.value){
+                        uuid = connectedNetworksVMI[tempInc]["uuid"];
+                        to = connectedNetworksVMI[tempInc]["to"];
                     }
                 }
             }
             if(uuid != null ) {
                 vmiRef["uuid"] = uuid;
-                vmiRef["to"] = [];
                 vmiRef["to"] = to;
             } else {
                 vmiRef["parent_type"] = "project";
@@ -216,20 +215,16 @@ define([
                 vmiRef["fq_name"][1] = selectedProject;
                 vmiRef["virtual_network_refs"] = [];
                 vmiRef["virtual_network_refs"][0] = {};
-                vmiRef["virtual_network_refs"][0]["to"] =
-                                              vmi.fqname.split(":");
-                vmiRef["virtual_machine_interface_device_owner"] =
-                                            "network:router_interface";
+                vmiRef["virtual_network_refs"][0]["to"] = vmi.fqname.split(":");
+                vmiRef["virtual_machine_interface_device_owner"] = "network:router_interface";
                 if(vmi.subnet.length > 0){
                     var ipRef = [];
                     ipRef[0] = {};
                     ipRef[0]["instance_ip_address"] = [];
                     ipRef[0]["instance_ip_address"][0] = {};
-                    ipRef[0]["instance_ip_address"][0]["fixedIp"] = "";
-                    ipRef[0]["instance_ip_address"][0]["domain"] =
-                                                   selectedDomain;
-                    ipRef[0]["instance_ip_address"][0]["project"] =
-                                                   selectedProject;
+                    ipRef[0]["instance_ip_address"][0]["fixedIp"] = vmi.fixedIP;
+                    ipRef[0]["instance_ip_address"][0]["domain"] = selectedDomain;
+                    ipRef[0]["instance_ip_address"][0]["project"] = selectedProject;
                     vmiRef["instance_ip_back_refs"] = ipRef;
                 }
             }

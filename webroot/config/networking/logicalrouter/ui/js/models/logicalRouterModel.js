@@ -7,8 +7,9 @@ define([
     'underscore',
     'contrail-config-model',
     'config/networking/logicalrouter/ui/js/views/logicalRouterFormatters',
-    'config/common/ui/js/routeTarget.utils'
-], function (_, ContrailConfigModel, logicalRouterFormatters, RouteTargetUtils) {
+    'config/common/ui/js/routeTarget.utils',
+    'config/networking/logicalrouter/ui/js/models/routerPortModel'
+], function (_, ContrailConfigModel, logicalRouterFormatters, RouteTargetUtils, RouterPortModel) {
     var lRFormatters = new logicalRouterFormatters();
     var routeTargetUtils = new RouteTargetUtils();
     var LogicalRouterModel = ContrailConfigModel.extend({
@@ -21,13 +22,13 @@ define([
             'virtual_network_refs' : '',
             'extNetworkUUID':'',
             'id_perms':{'enable':true},
-            'connectedNetwork':'',
             'SNAT':'Enabled',
             'vmi_ref': {"virtual_network_refs":[]},
             'templateGeneratorData': 'rawData',
             'configured_route_target_list': {
                 'route_target': [], //collection
             },
+            'user_created_router_ports': [],
             'user_created_configured_route_target_list': [], //fake created for rt_list.rt collection
             'physical_router_refs': [],
             'user_created_physical_router': 'none',
@@ -46,22 +47,7 @@ define([
                 modelConfig['extNetworkUUID'] =
                         modelConfig['virtual_network_refs'][0]['uuid'];
             }
-            if('virtual_machine_interface_refs' in modelConfig &&
-               modelConfig['virtual_machine_interface_refs'].length > 0){
-                   var vmi = modelConfig['virtual_machine_interface_refs'];
-                   var vmiLen =
-                       modelConfig['virtual_machine_interface_refs'].length;
-                   modelConfig['connectedNetwork'] = [];
-                   for(var i=0;i< vmiLen;i++) {
-                       if('virtual_network_refs' in vmi[i] &&
-                          vmi[i]['virtual_network_refs'].length > 0){
-                              var vnfqName =
-                                  vmi[i]['virtual_network_refs'][0]["uuid"];
-                              modelConfig['connectedNetwork'].push(vnfqName);
-                          }
-                   }
-            }
-
+            this.readRouterPorts(modelConfig)
             //populate user_created_physical_router
             var prRefs = getValueByJsonPath(modelConfig, 'physical_router_refs;0;to', []);
             if(prRefs.length === 2) {
@@ -82,13 +68,17 @@ define([
                 }
             }
         },
-        configureLogicalRouter: function (mode, allNetworksDS, callbackObj) {
+        configureLogicalRouter: function (mode, callbackObj) {
             var ajaxConfig = {}, returnFlag = true;
-            var network_subnet = allNetworksDS, idPermsStatus;
             var validation = [{
                   key: null,
                   type: cowc.OBJECT_TYPE_MODEL,
                   getValidation: 'logicalRouterValidations'
+                },
+                {
+                  key: 'user_created_router_ports',
+                  type: cowc.OBJECT_TYPE_COLLECTION,
+                  getValidation: 'routerPortModelConfigValidations'
                 },
                 {
                   key: 'user_created_configured_route_target_list',
@@ -98,7 +88,7 @@ define([
                 //permissions
                 ctwu.getPermissionsValidation()
             ];
-            if (this.isDeepValid(validation)) {
+            if (this.isDeepValid(validation) && this.allNetworksDS) {
                 var newLRData = $.extend({},this.model().attributes),
                     selectedDomain = ctwu.getGlobalVariable('domain').name,
                     selectedProject = ctwu.getGlobalVariable('project').name;
@@ -111,7 +101,7 @@ define([
                    && newLRData.virtual_network_refs[0].uuid == ""){
                    newLRData.virtual_network_refs = [];
                 }
-                idPermsStatus = getValueByJsonPath(newLRData, 'id_perms;enable', '');
+                var idPermsStatus = getValueByJsonPath(newLRData, 'id_perms;enable', '');
                 if(idPermsStatus) {
                     newLRData["id_perms"]["enable"] = idPermsStatus.toString() === "true" ? true : false;
                 }
@@ -148,38 +138,12 @@ define([
                     newLRData["physical_router_refs"] = [];
                 }
 
-                //Connected Networks.
-                var connectedNetwork = newLRData.connectedNetwork;
-                var connectedNetworkSel = connectedNetwork.split(",");
-                newLRData["virtual_machine_interface_refs"] = [];
-
-                if(newLRData.elementConfigMap &&
-                   connectedNetworkSel.length > 0) {
-                    var connectedNetworkLen = connectedNetworkSel.length;
-                    var connectedNetworkAllData =
-                        newLRData.elementConfigMap.connectedNetwork.data;
-                    var connectedNetworkAllDataLen =
-                        connectedNetworkAllData.length;
-                    for(var i=0; i < connectedNetworkLen; i++) {
-                        for(var j = 0; j < connectedNetworkAllDataLen; j++) {
-                            if(connectedNetworkAllData[j].value ==
-                                                   connectedNetworkSel[i]) {
-                                var cn = lRFormatters.buildVMIObj(
-                                    connectedNetworkAllData[j],
-                                    newLRData["rawData"]
-                                             ["virtual_machine_interface_refs"],
-                                    selectedDomain,
-                                    selectedProject);
-                                newLRData["virtual_machine_interface_refs"][i]
-                                                                           = cn;
-                            }
-                        }
-                    }
-                }
+                this.getRouterPorts(newLRData, selectedDomain, selectedProject)
                 routeTargetUtils.getRouteTargets(newLRData);
                 //permissions
                 this.updateRBACPermsAttrs(newLRData);
 
+                delete(this.allNetworksDS)
                 delete(newLRData.errors);
                 delete(newLRData.cgrid);
                 delete(newLRData.templateGeneratorData);
@@ -187,9 +151,9 @@ define([
                 delete(newLRData.locks);
                 delete(newLRData.rawData);
                 delete(newLRData.vmi_ref);
+                delete(newLRData.user_created_router_ports)
                 delete newLRData.user_created_configured_route_target_list;
                 delete(newLRData.extNetworkUUID);
-                delete(newLRData.connectedNetwork);
                 delete(newLRData.SNAT);
                 if("virtual_machine_interface_refs" in newLRData &&
                    newLRData["virtual_machine_interface_refs"].length == 0) {
@@ -250,6 +214,74 @@ define([
             }
             return returnFlag;
         },
+        getRouterPorts: function(newLRData, selectedDomain, selectedProject) {
+            newLRData["virtual_machine_interface_refs"] = [];
+            var routerPortCollection = newLRData.user_created_router_ports.toJSON();
+            var existed = {};
+            routerPortCollection.forEach(rp => { existed[rp.network()] = rp.disableRP() })
+            routerPortCollection.forEach(rp => {
+                var network = rp.network(), ip = rp.ip();
+                if (network && (rp.disableRP() || !existed[network])){
+                    existed[network] = true;
+                    vmi = Object.assign({}, this.allNetworksDS[network]);
+                    vmi.fixedIP = (ip === null || ip.trim() === "") ? "" : ip;
+                    cn = lRFormatters.buildVMIObj(
+                        vmi,
+                        newLRData["rawData"]["virtual_machine_interface_refs"],
+                        selectedDomain,
+                        selectedProject);
+                    newLRData["virtual_machine_interface_refs"].push(cn);
+                }
+            })
+        },
+        readRouterPorts: function (modelConfig) {
+            var routerPortModels = []
+            if('virtual_machine_interface_refs' in modelConfig &&
+                modelConfig['virtual_machine_interface_refs'].length > 0){
+                    var vmi = modelConfig['virtual_machine_interface_refs'];
+                    var vmiLen = modelConfig['virtual_machine_interface_refs'].length;
+                    for(var i=0;i< vmiLen;i++) {
+                        if('virtual_network_refs' in vmi[i] &&
+                            vmi[i]['virtual_network_refs'].length > 0 &&
+                            'instance_ip_back_refs' in vmi[i] &&
+                            vmi[i]['instance_ip_back_refs'].length >0 ){
+                                var vnfqName = vmi[i]['virtual_network_refs'][0]["uuid"],
+                                    rtIPAddr = vmi[i]['instance_ip_back_refs'][0]["ip"];
+                                var routerPortModel = new RouterPortModel({
+                                    'network': vnfqName,
+                                    'ip': rtIPAddr,
+                                    'disableRP': true
+                                });
+                                routerPortModels.push(routerPortModel);
+                            }
+                    }
+            }
+            modelConfig['user_created_router_ports'] = new Backbone.Collection(routerPortModels);
+        },
+        addRouterPort: function (type) {
+            var routerPorts = this.model().attributes[type]
+            var newRouterPort = new RouterPortModel({
+                'network': null,
+                'ip': null,
+                'disableRP': false,
+            });
+            routerPorts.add([newRouterPort]);
+        },
+        addRouterPortByIndex: function (type, data, kbRouteTarget) {
+            var selectedPortIndex = data.model().collection.indexOf(kbRouteTarget.model());
+            var routerPorts = this.model().attributes[type],
+            newRouterPort = new RouterPortModel({
+                'network': null,
+                'ip': null,
+                'disableRP': false,
+            });
+            routerPorts.add([newRouterPort],{at: selectedPortIndex+1});
+        },
+        deleteRouterPort: function (data, kbRouteTarget) {
+            var routerPorts = data.model().collection,
+                routerPort = kbRouteTarget.model();
+            routerPorts.remove(routerPort);
+        },
         addRouteTarget: function(type) {
             routeTargetUtils.addRouteTarget(type, this.model());
         },
@@ -286,7 +318,14 @@ define([
                 returnFlag = false;
             });
             return returnFlag;
-        }
+        },
+        storeAllNetworks: function (allNetworksDS) {
+            this.allNetworksDS = {}
+            for(var i = 0; i < allNetworksDS.length; i++) {
+                id = allNetworksDS[i].value;
+                this.allNetworksDS[id] = allNetworksDS[i];
+            }
+        },
     });
     return LogicalRouterModel;
 });
