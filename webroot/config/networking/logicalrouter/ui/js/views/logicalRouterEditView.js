@@ -41,6 +41,7 @@ define([
                         success: function () {
                             options['callback']();
                             $("#" + modalId).modal('hide');
+                            self.model.clearNetworks();
                         },
                         error: function (error) {
                             cowu.disableModalLoading(modalId, function () {
@@ -55,6 +56,7 @@ define([
                     Knockback.release(self.model, document.getElementById(modalId));
                     kbValidation.unbind(self);
                     $("#" + modalId).modal('hide');
+                    self.model.clearNetworks();
                 }
             });
 
@@ -64,7 +66,7 @@ define([
                    if(options['mode'] == "edit") {
                        disableElement = true;
                    }
-                   self.model.storeAllNetworks(allNetworksDS)
+                   self.model.cacheNetworks(allNetworksDS)
                    self.renderView4Config(
                         $("#" + modalId).find("#" + modalId + "-form"),
                         self.model, 

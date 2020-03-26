@@ -143,7 +143,6 @@ define([
                 //permissions
                 this.updateRBACPermsAttrs(newLRData);
 
-                delete(this.allNetworksDS)
                 delete(newLRData.errors);
                 delete(newLRData.cgrid);
                 delete(newLRData.templateGeneratorData);
@@ -319,13 +318,16 @@ define([
             });
             return returnFlag;
         },
-        storeAllNetworks: function (allNetworksDS) {
+        cacheNetworks: function (allNetworksDS) {
             this.allNetworksDS = {}
             for(var i = 0; i < allNetworksDS.length; i++) {
                 id = allNetworksDS[i].value;
                 this.allNetworksDS[id] = allNetworksDS[i];
             }
         },
+        clearNetworks: function () {
+            delete(this.allNetworksDS)
+        }
     });
     return LogicalRouterModel;
 });
