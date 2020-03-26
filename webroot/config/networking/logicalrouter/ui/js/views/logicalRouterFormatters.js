@@ -248,12 +248,12 @@ define([
                 } else {
                     networkText = localNetwork.fq_name[2];
                 }
-                if(localNetworks[j]["virtual-network"]["router_external"]
-                    != true &&
-                  "network_ipam_refs" in localNetworks[j]["virtual-network"] &&
-                  localNetworks[j]["virtual-network"]
+                if (localNetworks[j]["virtual-network"]["router_external"] != true &&
+                    "network_ipam_refs" in localNetworks[j]["virtual-network"] &&
+                    localNetworks[j]["virtual-network"]
                                   ["network_ipam_refs"].length > 0){
                     var subnet = localNetwork["network_ipam_refs"];
+                    networkText += " (" + subnet.map(el => el.subnet.ipam_subnet).join(", ") + ")"
                     returnNetwork.push({'text':networkText,
                                         'value':val,
                                         "fqname":fq_name,
