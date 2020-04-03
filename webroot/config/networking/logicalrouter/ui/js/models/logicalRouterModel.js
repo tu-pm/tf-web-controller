@@ -88,150 +88,205 @@ define([
                 //permissions
                 ctwu.getPermissionsValidation()
             ];
-            if (this.isDeepValid(validation) && this.allNetworksDS) {
-                var newLRData = $.extend({},this.model().attributes),
-                    selectedDomain = ctwu.getGlobalVariable('domain').name,
-                    selectedProject = ctwu.getGlobalVariable('project').name;
-                ctwu.setNameFromDisplayName(newLRData);
-                newLRData.fq_name = [selectedDomain,
-                                     selectedProject,
-                                     newLRData["name"]];
-                if(newLRData.virtual_network_refs.length == 1
-                   && newLRData.virtual_network_refs[0].to == ""
-                   && newLRData.virtual_network_refs[0].uuid == ""){
-                   newLRData.virtual_network_refs = [];
-                }
-                var idPermsStatus = getValueByJsonPath(newLRData, 'id_perms;enable', '');
-                if(idPermsStatus) {
-                    newLRData["id_perms"]["enable"] = idPermsStatus.toString() === "true" ? true : false;
-                }
-                //Externel Network
-                var extNetworkUUID = newLRData.extNetworkUUID
-                if(newLRData.elementConfigMap && extNetworkUUID != "" &&
-                   extNetworkUUID != "None") {
-                   newLRData["virtual_network_refs"] = [];
-                    var extNetworkUUIDData =
-                        newLRData.elementConfigMap.extNetworkUUID.data;
-                    var extNetworkUUIDDataLen = extNetworkUUIDData.length;
-                    for(var i = 0; i < extNetworkUUIDDataLen; i++) {
-                        if(extNetworkUUIDData[i].value == extNetworkUUID) {
-                            newLRData["virtual_network_refs"][0] = {};
-                            var obj = {};
-                            obj.to = extNetworkUUIDData[i].fqname.split(":");
-                            obj.uuid = extNetworkUUIDData[i].value;
-                            //Set attr type as ExternalGateway
-                            obj.attr = {
-                                "logical_router_virtual_network_type" : "ExternalGateway"
-                            };
-                            newLRData["virtual_network_refs"][0] = obj;
-                            break;
-                        }
-                    }
-                }
-
-                //extend to physical router
-                newLRData["physical_router_refs"] = [];
-                if(newLRData.user_created_physical_router !== 'none') {
-                    var toArray = newLRData.user_created_physical_router.split(':');
-                    newLRData["physical_router_refs"].push({"to": toArray});
-                } else {
-                    newLRData["physical_router_refs"] = [];
-                }
-
-                this.getRouterPorts(newLRData, selectedDomain, selectedProject)
-                routeTargetUtils.getRouteTargets(newLRData);
-                //permissions
-                this.updateRBACPermsAttrs(newLRData);
-
-                delete(newLRData.errors);
-                delete(newLRData.cgrid);
-                delete(newLRData.templateGeneratorData);
-                delete(newLRData.elementConfigMap);
-                delete(newLRData.locks);
-                delete(newLRData.rawData);
-                delete(newLRData.vmi_ref);
-                delete(newLRData.user_created_router_ports)
-                delete newLRData.user_created_configured_route_target_list;
-                delete(newLRData.extNetworkUUID);
-                delete(newLRData.SNAT);
-                if("virtual_machine_interface_refs" in newLRData &&
-                   newLRData["virtual_machine_interface_refs"].length == 0) {
-                    delete(newLRData.virtual_machine_interface_refs);
-                }
-                if("route_target_refs" in newLRData) {
-                    delete(newLRData.route_target_refs);
-                }
-                if("parent_href" in newLRData) {
-                    delete(newLRData.parent_href);
-                }
-                if("parent_uuid" in newLRData) {
-                    delete(newLRData.parent_uuid);
-                }
-                if("href" in newLRData) {
-                    delete(newLRData.href);
-                }
-
-                var type = "POST";
-                var url = "";
-                if(mode == "add") {
-                //create//
-                    newLRData.display_name = newLRData["name"];
-                    delete(newLRData["uuid"]);
-                    url = ctwc.URL_CREATE_CONFIG_OBJECT;
-                } else {
-                    url = ctwc.URL_UPDATE_CONFIG_OBJECT;
-                }
-                lRouter = {};
-                lRouter["logical-router"] = {};
-                lRouter["logical-router"] = newLRData;
-
-                ajaxConfig = {};
-                ajaxConfig.async = false;
-                ajaxConfig.type = type;
-                ajaxConfig.data = JSON.stringify(lRouter);
-                ajaxConfig.url = url;
-                contrail.ajaxHandler(ajaxConfig, function () {
-                    if (contrail.checkIfFunction(callbackObj.init)) {
-                        callbackObj.init();
-                    }
-                }, function (response) {
-                    if (contrail.checkIfFunction(callbackObj.success)) {
-                        callbackObj.success();
-                    }
-                    returnFlag = true;
-                }, function (error) {
+            var self = this
+            this.fetchExistedIPs(function(error, networkIPs){
+                console.log(networkIPs)
+                if (error) {
                     if (contrail.checkIfFunction(callbackObj.error)) {
                         callbackObj.error(error);
                     }
-                    returnFlag = false;
-                });
-            } else {
-                if (contrail.checkIfFunction(callbackObj.error)) {
-                    callbackObj.error(this.getFormErrorText
-                                     (ctwl.LOGICAL_ROUTER_PREFIX_ID));
+                    return false;
                 }
-            }
-            return returnFlag;
-        },
-        getRouterPorts: function(newLRData, selectedDomain, selectedProject) {
-            newLRData["virtual_machine_interface_refs"] = [];
-            var routerPortCollection = newLRData.user_created_router_ports.toJSON();
-            var existed = {};
-            routerPortCollection.forEach(rp => { existed[rp.network()] = rp.disableRP() })
-            routerPortCollection.forEach(rp => {
-                var network = rp.network(), ip = rp.ip();
-                if (network && (rp.disableRP() || !existed[network])){
-                    existed[network] = true;
-                    vmi = Object.assign({}, this.allNetworksDS[network]);
-                    vmi.fixedIP = (ip === null || ip.trim() === "") ? "" : ip;
-                    cn = lRFormatters.buildVMIObj(
-                        vmi,
-                        newLRData["rawData"]["virtual_machine_interface_refs"],
-                        selectedDomain,
-                        selectedProject);
-                    newLRData["virtual_machine_interface_refs"].push(cn);
+                if (self.isDeepValid(validation) && self.allNetworksDS) {
+                    var newLRData = $.extend({},self.model().attributes),
+                        selectedDomain = ctwu.getGlobalVariable('domain').name,
+                        selectedProject = ctwu.getGlobalVariable('project').name;
+                    ctwu.setNameFromDisplayName(newLRData);
+                    newLRData.fq_name = [selectedDomain,
+                                         selectedProject,
+                                         newLRData["name"]];
+                    if(newLRData.virtual_network_refs.length == 1
+                       && newLRData.virtual_network_refs[0].to == ""
+                       && newLRData.virtual_network_refs[0].uuid == ""){
+                       newLRData.virtual_network_refs = [];
+                    }
+                    var idPermsStatus = getValueByJsonPath(newLRData, 'id_perms;enable', '');
+                    if(idPermsStatus) {
+                        newLRData["id_perms"]["enable"] = idPermsStatus.toString() === "true" ? true : false;
+                    }
+                    //Externel Network
+                    var extNetworkUUID = newLRData.extNetworkUUID
+                    if(newLRData.elementConfigMap && extNetworkUUID != "" &&
+                       extNetworkUUID != "None") {
+                       newLRData["virtual_network_refs"] = [];
+                        var extNetworkUUIDData =
+                            newLRData.elementConfigMap.extNetworkUUID.data;
+                        var extNetworkUUIDDataLen = extNetworkUUIDData.length;
+                        for(var i = 0; i < extNetworkUUIDDataLen; i++) {
+                            if(extNetworkUUIDData[i].value == extNetworkUUID) {
+                                newLRData["virtual_network_refs"][0] = {};
+                                var obj = {};
+                                obj.to = extNetworkUUIDData[i].fqname.split(":");
+                                obj.uuid = extNetworkUUIDData[i].value;
+                                //Set attr type as ExternalGateway
+                                obj.attr = {
+                                    "logical_router_virtual_network_type" : "ExternalGateway"
+                                };
+                                newLRData["virtual_network_refs"][0] = obj;
+                                break;
+                            }
+                        }
+                    }
+    
+                    //extend to physical router
+                    newLRData["physical_router_refs"] = [];
+                    if(newLRData.user_created_physical_router !== 'none') {
+                        var toArray = newLRData.user_created_physical_router.split(':');
+                        newLRData["physical_router_refs"].push({"to": toArray});
+                    } else {
+                        newLRData["physical_router_refs"] = [];
+                    }
+                    var errors = self.setVmiRefs(newLRData, selectedDomain, selectedProject, networkIPs)
+                    if (errors.length > 0) {
+                        if (contrail.checkIfFunction(callbackObj.error)) {
+                            callbackObj.error({responseText: errors.join("\n")});
+                        }
+                        return false
+                    }
+                    routeTargetUtils.getRouteTargets(newLRData);
+                    //permissions
+                    self.updateRBACPermsAttrs(newLRData);
+    
+                    delete(newLRData.errors);
+                    delete(newLRData.cgrid);
+                    delete(newLRData.templateGeneratorData);
+                    delete(newLRData.elementConfigMap);
+                    delete(newLRData.locks);
+                    delete(newLRData.rawData);
+                    delete(newLRData.vmi_ref);
+                    delete(newLRData.user_created_router_ports)
+                    delete newLRData.user_created_configured_route_target_list;
+                    delete(newLRData.extNetworkUUID);
+                    delete(newLRData.SNAT);
+                    if("virtual_machine_interface_refs" in newLRData &&
+                       newLRData["virtual_machine_interface_refs"].length == 0) {
+                        delete(newLRData.virtual_machine_interface_refs);
+                    }
+                    if("route_target_refs" in newLRData) {
+                        delete(newLRData.route_target_refs);
+                    }
+                    if("parent_href" in newLRData) {
+                        delete(newLRData.parent_href);
+                    }
+                    if("parent_uuid" in newLRData) {
+                        delete(newLRData.parent_uuid);
+                    }
+                    if("href" in newLRData) {
+                        delete(newLRData.href);
+                    }
+    
+                    var type = "POST";
+                    var url = "";
+                    if(mode == "add") {
+                    //create//
+                        newLRData.display_name = newLRData["name"];
+                        delete(newLRData["uuid"]);
+                        url = ctwc.URL_CREATE_CONFIG_OBJECT;
+                    } else {
+                        url = ctwc.URL_UPDATE_CONFIG_OBJECT;
+                    }
+                    lRouter = {};
+                    lRouter["logical-router"] = {};
+                    lRouter["logical-router"] = newLRData;
+    
+                    ajaxConfig = {};
+                    ajaxConfig.async = false;
+                    ajaxConfig.type = type;
+                    ajaxConfig.data = JSON.stringify(lRouter);
+                    ajaxConfig.url = url;
+                    contrail.ajaxHandler(ajaxConfig, function () {
+                        if (contrail.checkIfFunction(callbackObj.init)) {
+                            callbackObj.init();
+                        }
+                    }, function (response) {
+                        if (contrail.checkIfFunction(callbackObj.success)) {
+                            callbackObj.success();
+                        }
+                        returnFlag = true;
+                    }, function (error) {
+                        if (contrail.checkIfFunction(callbackObj.error)) {
+                            callbackObj.error(error);
+                        }
+                        returnFlag = false;
+                    });
+                } else {
+                    if (contrail.checkIfFunction(callbackObj.error)) {
+                        callbackObj.error(self.getFormErrorText
+                                         (ctwl.LOGICAL_ROUTER_PREFIX_ID));
+                    }
                 }
+                return returnFlag;
             })
+        },
+        setVmiRefs: function(newLRData, selectedDomain, selectedProject, networkIPs) {
+            newLRData["virtual_machine_interface_refs"] = [];
+            var errors = [],
+                routerPortCollection = newLRData.user_created_router_ports.toJSON(),
+                uniqueNetworks = {};
+            routerPortCollection.forEach(rp => { uniqueNetworks[rp.network()] = rp.disableRP() })
+            routerPortCollection.forEach(rp => {
+                var networkID = rp.network(),
+                    ip = rp.ip();
+                var nwObj = this.allNetworksDS[networkID]
+
+                if (!rp.disableRP() && uniqueNetworks[networkID]) {
+                    errors.push("Duplicated network: " + nwObj.text + ".")
+                    return
+                }
+                uniqueNetworks[networkID] = true
+                if (!rp.disableRP() && networkIPs[networkID] && networkIPs[networkID].includes(ip)) {
+                    errors.push("IP " + ip + " exists on network " + nwObj.text + ".")
+                    return
+                }
+                vmi = Object.assign({}, this.allNetworksDS[networkID]);
+                vmi.fixedIP = (ip === null || ip.trim() === "") ? "" : ip;
+                cn = lRFormatters.buildVMIObj(
+                    vmi,
+                    newLRData["rawData"]["virtual_machine_interface_refs"],
+                    selectedDomain,
+                    selectedProject);
+                newLRData["virtual_machine_interface_refs"].push(cn);
+            })
+            return errors
+        },
+        fetchExistedIPs: function(callback) {
+            var ajaxConfig = {};
+            ajaxConfig.type = 'POST';
+            ajaxConfig.data = JSON.stringify({
+            data: [{
+                type: "instance-ips",
+                fields: ["virtual_network_refs", "instance_ip_address"]
+                }]
+            });
+            ajaxConfig.url = ctwc.URL_GET_CONFIG_DETAILS;
+            contrail.ajaxHandler(ajaxConfig, null,
+                function (response) {
+                    var nwIPs = {},
+                        iips = getValueByJsonPath(response, '0;instance-ips', '', false);
+                    _.each(iips, function(iipObj) {
+                        var ip = getValueByJsonPath(iipObj,'instance-ip;instance_ip_address', '', false);
+                        var nw = getValueByJsonPath(iipObj,'instance-ip;virtual_network_refs;0;uuid', '', false);
+                        if (!(nw in nwIPs)) {
+                            nwIPs[nw] = []
+                        }
+                        nwIPs[nw].push(ip)
+                    });
+                    callback(null, nwIPs);
+                },
+                function (error) {
+                    callback(error, {});
+                }
+            );
         },
         readRouterPorts: function (modelConfig) {
             var routerPortModels = []

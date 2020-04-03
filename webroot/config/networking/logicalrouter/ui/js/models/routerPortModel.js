@@ -29,6 +29,11 @@ define([
 
         validations: {
             routerPortModelConfigValidations: {
+                'network': function(value, attr, finalObj) {
+                    if (!value) {
+                        return "No networks selected"
+                    }
+                },
                 'ip': function(value, attr, finalObj) {
                     if(value === null || value.trim() === "") {
                         return;
