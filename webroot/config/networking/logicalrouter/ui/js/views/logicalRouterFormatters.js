@@ -39,9 +39,12 @@ define([
             }
             return extGateway;
         };
-        this.showSNAT = function(d, c, v, cd, dc) {
-            return "Enabled";
-        }
+        this.routerTypeFormatter = function(d, c, v, cd, dc) {
+            if ("logical_router_type" in dc) {
+                return dc["logical_router_type"];
+            }
+            return "";
+        };
         this.interfaceDetailFormatter = function(d, c, v, cd, dc) {
             var domainName = ctwu.getGlobalVariable('domain').name;
             var projectName = ctwu.getGlobalVariable('project').name;

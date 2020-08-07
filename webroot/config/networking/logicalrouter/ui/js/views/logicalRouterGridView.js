@@ -262,13 +262,13 @@ define([
                                         formatter: "extGatewayFormatter"
                                     }
                                 }, {
-                                    key: 'id_perms',
+                                    key: 'logical_router_type',
                                     keyClass:'col-xs-3',
-                                    name: 'id_perms',
-                                    label:'SNAT',
+                                    name: 'logical_router_type',
+                                    label:'Type',
                                     templateGenerator: 'TextGenerator',
                                     templateGeneratorConfig:{
-                                        formatter: "showSNAT"
+                                        formatter: "routerTypeFormatter"
                                     }
                                 }, {
                                     key: 'id_perms',
@@ -336,8 +336,8 @@ define([
     this.physicalRouterFormatterExpand = function(v, dc) {
         return lRFormatters.physicalRouterFormatterExpand("", "", v, "", dc);
     };
-    this.showSNAT = function(v, dc) {
-        return lRFormatters.showSNAT("", "", v, "", dc);
+    this.routerTypeFormatter = function (v, dc) {
+        return lRFormatters.routerTypeFormatter("", "", v, "", dc);
     };
     this.routeTargetFormatterCommon = function (v, dc) {
         var retStr = routeTargetUtils.routeTargetFormatter(null,

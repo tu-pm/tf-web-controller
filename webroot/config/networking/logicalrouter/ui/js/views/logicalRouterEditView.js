@@ -225,15 +225,20 @@ define([
                                        dataValueField: "value",
                                        data : externalNetworksDS}}
                     },{
-                        elementId: 'checkSNAT',
-                        view: "FormCheckboxView",
-                        name: "SNAT",
-                        viewConfig: {
-                                     disabled: true,
-                                     label: "SNAT",
-                                     path: 'checkSNAT',
-                                     dataBindValue: 'checkSNAT',
-                                     class: "col-xs-6"}
+                        elementId: 'logical_router_type',
+                        view: "FormDropdownView",
+                        viewConfig: {path: 'logical_router_type',
+                                     label: "Type",
+                                     disabled: isDisable,
+                                     dataBindValue: 'logical_router_type',
+                                     class: "col-xs-6",
+                        elementConfig:{allowClear: true,
+                                       dataTextField: "text",
+                                       dataValueField: "value",
+                                       data : [
+                                         {"text":"vxlan-routing","value":"vxlan-routing"},
+                                         {"text":"snat-routing","value":"snat-routing"}]
+                                    }}
                     }]
                 }, {
                     columns: [{

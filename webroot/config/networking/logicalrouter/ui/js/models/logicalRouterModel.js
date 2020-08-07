@@ -22,7 +22,7 @@ define([
             'virtual_network_refs' : '',
             'extNetworkUUID':'',
             'id_perms':{'enable':true},
-            'SNAT':'Enabled',
+            'logical_router_type':'',
             'vmi_ref': {"virtual_network_refs":[]},
             'templateGeneratorData': 'rawData',
             'configured_route_target_list': {
@@ -167,7 +167,6 @@ define([
                     delete(newLRData.user_created_router_ports)
                     delete newLRData.user_created_configured_route_target_list;
                     delete(newLRData.extNetworkUUID);
-                    delete(newLRData.SNAT);
                     if("virtual_machine_interface_refs" in newLRData &&
                        newLRData["virtual_machine_interface_refs"].length == 0) {
                         delete(newLRData.virtual_machine_interface_refs);
